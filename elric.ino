@@ -29,7 +29,6 @@ void loop() {
   Serial.print("Raw: ");
   Serial.println(input);
 
-  // Smooth that shit
   input_total -= input_readings[input_read_index];
   input_readings[input_read_index] = input;
   input_total += input_readings[input_read_index];
@@ -38,10 +37,7 @@ void loop() {
 
   float motorval = input_total / SMOOTH_LENGTH;
   
-  // BULLSHIT MATH
-  // Scale between 0 and 1
   motorval = scale_to_range(motorval, MIN_INPUT, MAX_INPUT, 0, 1);
-  // sigmoid curve
   motorval = sigmoid(motorval, SIGMOID_GAIN);
 
   Serial.println(motorval * 1024);
