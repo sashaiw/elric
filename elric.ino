@@ -1,9 +1,9 @@
 #include <Servo.h>
 
-const int SIGMOID_GAIN = 5;   // Sharpness of curve
-const int MIN_INPUT = 100;     // Minimum sensor input
-const int MAX_INPUT = 300;    // Maximum sensor input
-const int SMOOTH_LENGTH = 10; // Number of iterations to smooth over
+const int SIGMOID_GAIN = 2;
+const int MIN_INPUT = 10;
+const int MAX_INPUT = 707; 
+const int SMOOTH_LENGTH = 10;
 
 const int MOTOR_PIN = 10;
 const int SENSOR_PIN = 0;
@@ -26,8 +26,10 @@ void setup() {
 
 void loop() {
   int input = analogRead(SENSOR_PIN);
-  
+  Serial.print("Raw: ");
+  Serial.println(input);
 
+  // Smooth that shit
   input_total -= input_readings[input_read_index];
   input_readings[input_read_index] = input;
   input_total += input_readings[input_read_index];
@@ -35,13 +37,15 @@ void loop() {
   if (input_read_index >= SMOOTH_LENGTH) { input_read_index = 0; }
 
   float motorval = input_total / SMOOTH_LENGTH;
-
-  Serial.println(motorval);
   
+  // BULLSHIT MATH
+  // Scale between 0 and 1
   motorval = scale_to_range(motorval, MIN_INPUT, MAX_INPUT, 0, 1);
+  // sigmoid curve
   motorval = sigmoid(motorval, SIGMOID_GAIN);
 
-  servo.write(scale_to_range(motorval, 0, 1, 0, 180));
+  Serial.println(motorval * 1024);
+  servo.write(input/1024.0*180.0*2);
   delay(50);
 }
 
