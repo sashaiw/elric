@@ -45,7 +45,7 @@ void loop() {
   motorval = sigmoid(motorval, SIGMOID_GAIN);
 
   Serial.println(motorval * 1024);
-  servo.write(input/1024.0*180.0*2);
+  servo.write(motorval * 180);
   delay(50);
 }
 
