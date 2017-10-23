@@ -29,14 +29,14 @@ void loop() {
   // Get input value with LPF
   input_value = analogRead(SENSOR_PIN);
 
-  // Apply bullshit scaling math
+  // Scale to range
   output_value = scale_to_range(output_value, MIN_INPUT, MAX_INPUT, 0, 1);
 
   // Apply LPF
   output_value = lpf.input(input_value);
   
   // Average
-  output_value = smooth_that_shit(SMOOTH_LENGTH, input_value);
+  output_value = average(SMOOTH_LENGTH, input_value);
   
   // Apply sigmoid curve
   output_value = sigmoid(output_value, SIGMOID_GAIN);
@@ -51,7 +51,7 @@ void loop() {
   delay(POLL_RATE);
 }
 
-float smooth_that_shit(int smooth_length, float input_value) {
+float average(int smooth_length, float input_value) {
   static int input_readings[SMOOTH_LENGTH];
   static int input_read_index = 0;
   static float input_total = 0;
