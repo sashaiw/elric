@@ -13,7 +13,6 @@ const int SMOOTH_LENGTH    = 5;   // Length of average
 const int MOTOR_PIN = 10; // Servo
 const int SENSOR_PIN = 0; // Myoelectric sensor
 
-
 Servo servo;
 FilterOnePole lpf(LOWPASS, FILTER_FREQUENCY);
 
