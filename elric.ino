@@ -60,9 +60,7 @@ float average(int smooth_length, float input_value) {
   input_readings[input_read_index] = input_value;
   input_total += input_readings[input_read_index];
   input_read_index++;
-  if (input_read_index >= SMOOTH_LENGTH) {
-    input_read_index = 0;
-  }
+  input_read_index = input_read_index >= SMOOTH_LENGTH ? 0 : input_read_index;
 
   return input_total / SMOOTH_LENGTH;
 }
