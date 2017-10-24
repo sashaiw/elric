@@ -2,12 +2,12 @@
 #include <Filters.h>
 
 // Tune-able parameters
-const int POLL_RATE        = 10;  // Poll rate in ms
-const int SIGMOID_GAIN     = 2;   // Gain for sigmoid function (e^-x)
-const int MIN_INPUT        = 40;  // Minimum input value (0-1024
-const int MAX_INPUT        = 200; // Maximum input value (0-1024)
-const int FILTER_FREQUENCY = 100; // Frequency in HZ of LPF
-const int SMOOTH_LENGTH    = 5;   // Length of average 
+const int POLL_RATE        = 10;    // Poll rate in ms
+const int SIGMOID_GAIN     = 2;    // Gain for sigmoid function (e^-x)
+const int MIN_INPUT        = 160;     // Minimum input value (0-1024
+const int MAX_INPUT        = 200;    // Maximum input value (0-1024)
+const int SMOOTH_LENGTH    = 100;   // Length of average 
+const float FILTER_FREQUENCY = 1; // Frequency in HZ of LPF
 
 // Pins
 const int MOTOR_PIN = 10; // Servo
@@ -22,28 +22,29 @@ void setup() {
 }
 
 void loop() {
-  int input_value;
   float output_value;
+  int input_value = analogRead(SENSOR_PIN);
   
   // Get input value with LPF
-  input_value = analogRead(SENSOR_PIN);
+  lpf.input(input_value);
+  output_value = lpf.output();
+
+  // Apply LPF
+  //output_value = lpf.input(input_value);
 
   // Scale to range
   output_value = scale_to_range(output_value, MIN_INPUT, MAX_INPUT, 0, 1);
-
-  // Apply LPF
-  output_value = lpf.input(input_value);
   
   // Average
-  output_value = average(SMOOTH_LENGTH, input_value);
+  //output_value = average(SMOOTH_LENGTH, input_value);
   
   // Apply sigmoid curve
   output_value = sigmoid(output_value, SIGMOID_GAIN);
 
   // Debug, plot two graphs
-  Serial.print(input_value);
+  Serial.print(scale_to_range(input_value, MIN_INPUT, MAX_INPUT, 0, 180));
   Serial.print(",");
-  Serial.println(output_value * 1024);
+  Serial.println(scale_to_range(output_value, 0, 1, 0, 180));
 
   // Write to servo
   servo.write(output_value * 180);
@@ -70,6 +71,6 @@ float scale_to_range(float input, int old_min, int old_max, int new_min, int new
 }
 
 float sigmoid(float input, float gain) {
-  return 1 / (1 + pow(2.71828, (-gain) * (input - 0.5) ));
+  return 1 / (1 + pow(2.71828, (gain - 2 * gain) * (input - 0.5) ));
 }
 
