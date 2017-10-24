@@ -28,7 +28,8 @@ void loop() {
   // Apply LPF
   lpf.input(input_value);
   output_value = lpf.output();
-
+//prints out calibration values idk
+Serial.println(calibrate_values(1000));
   // Scale to range
   output_value = scale_to_range(output_value, MIN_INPUT, MAX_INPUT, 0, 1);
    
@@ -52,3 +53,19 @@ float scale_to_range(float input, int old_min, int old_max, int new_min, int new
 float sigmoid(float input, float gain) {
   return 1 / (1 + pow(2.71828, (gain - 2 * gain) * (input - 0.5) ));
 }
+
+int calibrate_values(int time) {
+  const int length = 50;
+  int avg = 0;
+  int readings[length];
+  for(int i = 0; i < length; i++) {
+    readings[i]=analogRead(SENSOR_PIN);
+    delay(time/length);
+  }
+  for(int i = 0; i<length; i++) {
+    avg += readings[i];
+  }
+  avg /= length;
+  return avg;
+}
+
