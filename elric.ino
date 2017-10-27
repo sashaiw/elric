@@ -2,18 +2,20 @@
 #include <Filters.h>
 
 // Tune-able parameters
-const int POLL_RATE        = 10;    // Poll rate in ms
-const int SIGMOID_GAIN     = 5;     // Gain for sigmoid function (e^-x)
-const int MIN_INPUT        = 200;   // Minimum input value (0-1024
-const int MAX_INPUT        = 250;   // Maximum input value (0-1024)
-const int SMOOTH_LENGTH    = 100;   // Length of average 
-const int CALIBRATE_LENGTH = 50;    // Number of values to collect for calibration
-const int CALIBRATE_TIME   = 5000;  // Amount of time 
-const float FILTER_FREQUENCY = .25; // Frequency in HZ of LPF
+const int POLL_RATE          = 10;   // Poll rate in ms
+const int SIGMOID_GAIN       = 2;    // Gain for sigmoid function (e^-x)
+const int DEFAULT_MIN_INPUT  = 200;  // Minimum input value (0-1024
+const int DEFAULT_MAX_INPUT  = 250;  // Maximum input value (0-1024)
+const int SMOOTH_LENGTH      = 100;  // Length of average 
+const int CALIBRATE_LENGTH   = 50;   // Number of values to collect for calibration
+const int CALIBRATE_TIME     = 5000; // Amount of time 
+const float FILTER_FREQUENCY = .25;  // Frequency in HZ of LPF
 
 // Pins
 const int MOTOR_PIN = 10; // Servo
 const int SENSOR_PIN = 0; // Myoelectric sensor
+const int MIN_BUTTON = 2; // Button for calibrating minimum range
+const int MAX_BUTTON = 3; // Button for calibrating maximum range
 
 Servo servo;
 FilterOnePole lpf(LOWPASS, FILTER_FREQUENCY);
@@ -21,26 +23,43 @@ FilterOnePole lpf(LOWPASS, FILTER_FREQUENCY);
 void setup() {
   Serial.begin(115200);
   servo.attach(MOTOR_PIN);
+  pinMode(SENSOR_PIN, INPUT);
+  pinMode(MIN_BUTTON, INPUT_PULLUP);
+  pinMode(MAX_BUTTON, INPUT_PULLUP);
 }
 
 void loop() {
   float output_value;
   int input_value = analogRead(SENSOR_PIN);
+  static int min_input = DEFAULT_MIN_INPUT;
+  static int max_input = DEFAULT_MAX_INPUT;
+
+  // Calibration buttons
+  if (digitalRead(MIN_BUTTON) == LOW) {
+    min_input = calibrate_values();
+    Serial.print("Min input calibrated to ");
+    Serial.println(min_input);
+  }
+  if (digitalRead(MAX_BUTTON) == LOW) {
+    max_input = calibrate_values();
+    Serial.print("Max input calibrated to ");
+    Serial.println(max_input);
+  }
   
   // Apply LPF
   lpf.input(input_value);
   output_value = lpf.output();
 
   // Scale to range
-  output_value = scale_to_range(output_value, MIN_INPUT, MAX_INPUT, 0, 1);
+  output_value = scale_to_range(output_value, min_input, max_input, 0, 1);
 
   // Apply sigmoid curve
   output_value = sigmoid(output_value, SIGMOID_GAIN);
 
   // Debug, plot two graphs
-  Serial.print(scale_to_range(input_value, 0, 1024, 0, 180));
+  Serial.print(scale_to_range(input_value, 0, 1024, 0, 1024));
   Serial.print(",");
-  Serial.println(output_value * 180);
+  Serial.println(output_value * 1024);
 
   // Write to servo
   servo.write(output_value * 180);
