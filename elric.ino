@@ -3,13 +3,13 @@
 
 // Tune-able parameters
 const int POLL_RATE          = 10;   // Poll rate in ms
-const int SIGMOID_GAIN       = 2;    // Gain for sigmoid function (e^-x)
+const int SIGMOID_GAIN       = 1;   // Gain for sigmoid function (e^-x)
 const int DEFAULT_MIN_INPUT  = 200;  // Minimum input value (0-1024
 const int DEFAULT_MAX_INPUT  = 250;  // Maximum input value (0-1024)
-const int SMOOTH_LENGTH      = 100;  // Length of average 
 const int CALIBRATE_LENGTH   = 50;   // Number of values to collect for calibration
 const int CALIBRATE_TIME     = 5000; // Amount of time 
-const float FILTER_FREQUENCY = .25;  // Frequency in HZ of LPF
+const float FILTER_FREQUENCY = 1;   // Frequency in HZ of LPF
+const int RANGE_DELTA        = 25;   // Delta for calibrated range
 
 // Pins
 const int MOTOR_PIN = 10; // Servo
@@ -36,12 +36,12 @@ void loop() {
 
   // Calibration buttons
   if (digitalRead(MIN_BUTTON) == LOW) {
-    min_input = calibrate_values();
+    min_input = calibrate_values() + RANGE_DELTA; 
     Serial.print("Min input calibrated to ");
     Serial.println(min_input);
   }
   if (digitalRead(MAX_BUTTON) == LOW) {
-    max_input = calibrate_values();
+    max_input = calibrate_values() - RANGE_DELTA;
     Serial.print("Max input calibrated to ");
     Serial.println(max_input);
   }
@@ -59,15 +59,19 @@ void loop() {
   // Debug, plot two graphs
   Serial.print(scale_to_range(input_value, 0, 1024, 0, 1024));
   Serial.print(",");
-  Serial.println(output_value * 1024);
-
+  Serial.print(output_value * 1024);
+  Serial.print(",");
+  Serial.print(min_input);
+  Serial.print(",");
+  Serial.println(max_input);
+  
   // Write to servo
-  servo.write(output_value * 180);
+  servo.write(scale_to_range(output_value, 0, 1, 0, 180));
   delay(POLL_RATE);
 }
 
 float scale_to_range(float input_value, float old_min, float old_max, float new_min, float new_max) {
-  return (((input_value - old_min) * (new_max - new_min)) / (old_max - old_min)) + new_min;
+  return (input_value - old_min) * (new_max - new_min) / (old_max - old_min) + new_min;
 }
 
 float sigmoid(float input, float gain) {
