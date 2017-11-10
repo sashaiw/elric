@@ -9,6 +9,7 @@ const int DEFAULT_MAX_INPUT  = 120;  // Maximum input value (0-1024)
 const int RANGE_DELTA        = 25;   // Delta for calibrated range
 const int CALIBRATE_LENGTH   = 50;   // Number of values to collect for calibration
 const int CALIBRATE_TIME     = 5000; // Duration to collect calibration data on
+const int CURVE_STEEPNESS    = 5;    // Steepness of output curve
 const float FILTER_FREQUENCY = 1;    // Frequency in HZ of LPF
 
 // Pins
@@ -54,10 +55,13 @@ void loop() {
   // Scale to range
   output_value = scale_to_range(output_value, min_input, max_input, 0, 1);
 
+  // Apply curves
+  output_value = curve(output_value, CURVE_STEEPNESS);
+
   // Debug, plot two graphs
-  Serial.print(scale_to_range(input_value, min_input, max_input, min_input, max_input));
+  Serial.print(scale_to_range(input_value, 0, 1024, 0, 1024));
   Serial.print(",");
-  Serial.print(scale_to_range(output_value, 0, 1, min_input, max_input));
+  Serial.print(scale_to_range(output_value, 0, 1, 0, 1024));
   Serial.print(",");
   Serial.print(min_input);
   Serial.print(",");
@@ -70,6 +74,10 @@ void loop() {
 
 float scale_to_range(float input_value, float old_min, float old_max, float new_min, float new_max) {
   return clamp((input_value - old_min) * (new_max - new_min) / (old_max - old_min) + new_min, new_min, new_max);
+}
+
+float curve(int x, int steepness) {
+  return .5 + .5 * tanh(steepness * (x - .5));
 }
 
 float clamp(float x, float min_value, float max_value) {
