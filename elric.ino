@@ -3,14 +3,13 @@
 
 // Tune-able parameters
 const int POLL_RATE          = 10;   // Poll rate in ms
-const int SIGMOID_GAIN       = 1;    // Gain for sigmoid function (e^-x)
 const int DEFAULT_MIN_INPUT  = 50;  // Minimum input value (0-1024
-const int DEFAULT_MAX_INPUT  = 120;  // Maximum input value (0-1024)
+const int DEFAULT_MAX_INPUT  = 200;  // Maximum input value (0-1024)
 const int RANGE_DELTA        = 25;   // Delta for calibrated range
 const int CALIBRATE_LENGTH   = 50;   // Number of values to collect for calibration
-const int CALIBRATE_TIME     = 5000; // Duration to collect calibration data on
-const int CURVE_STEEPNESS    = 5;    // Steepness of output curve
-const float FILTER_FREQUENCY = 1;    // Frequency in HZ of LPF
+const int CALIBRATE_TIME     = 5000; // Duration (ms) to collect calibration data
+const int CURVE_STEEPNESS    = 10;    // Steepness of output curve. DO NOT GO BELOW LIKE 4 OR SOMETHING.
+const float FILTER_FREQUENCY = .25;    // Frequency in HZ of LPF
 
 // Pins
 const int MOTOR_PIN = 10; // Servo
@@ -50,7 +49,6 @@ void loop() {
   // Apply LPF
   lpf.input(input_value);
   output_value = lpf.output();
-  //output_value = input_value;
 
   // Scale to range
   output_value = scale_to_range(output_value, min_input, max_input, 0, 1);
@@ -76,7 +74,7 @@ float scale_to_range(float input_value, float old_min, float old_max, float new_
   return clamp((input_value - old_min) * (new_max - new_min) / (old_max - old_min) + new_min, new_min, new_max);
 }
 
-float curve(int x, int steepness) {
+float curve(float x, int steepness) {
   return .5 + .5 * tanh(steepness * (x - .5));
 }
 
