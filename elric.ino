@@ -1,15 +1,23 @@
 #include <Servo.h>
 #include <Filters.h>
 
+enum mode {VARIABLE, BINARY};
+enum state {OPEN, CLOSED};
+typedef enum mode Mode;
+typedef enum state State;
+
 // Tune-able parameters
-const int POLL_RATE          = 10;   // Poll rate in ms
-const int DEFAULT_MIN_INPUT  = 50;  // Minimum input value (0-1024
-const int DEFAULT_MAX_INPUT  = 200;  // Maximum input value (0-1024)
-const int RANGE_DELTA        = 25;   // Delta for calibrated range
-const int CALIBRATE_LENGTH   = 50;   // Number of values to collect for calibration
-const int CALIBRATE_TIME     = 5000; // Duration (ms) to collect calibration data
-const int CURVE_STEEPNESS    = 10;    // Steepness of output curve. DO NOT GO BELOW LIKE 4 OR SOMETHING.
-const float FILTER_FREQUENCY = .25;    // Frequency in HZ of LPF
+const int POLL_RATE          = 1;        // Poll rate in ms
+const int DEFAULT_MIN_INPUT  = 35;       // Minimum input value (0-1024
+const int DEFAULT_MAX_INPUT  = 150;      // Maximum input value (0-1024)
+const int RANGE_DELTA        = 25;       // Delta for calibrated range
+const int CALIBRATE_LENGTH   = 50;       // Number of values to collect for calibration
+const int CALIBRATE_TIME     = 5000;     // Duration (ms) to collect calibration data
+const int CURVE_STEEPNESS    = 10;       // Steepness of output curve. DO NOT GO BELOW LIKE 4 OR SOMETHING.
+const float FILTER_FREQUENCY = .1;       // Frequency in HZ of LPF
+const Mode DEFAULT_MODE      = VARIABLE; // Mode to start in
+const int BINARY_THRESHOLD   = 512;
+const int BINARY_DELTA       = 200;
 
 // Pins
 const int MOTOR_PIN = 10; // Servo
@@ -33,6 +41,8 @@ void loop() {
   int input_value = analogRead(SENSOR_PIN);
   static int min_input = DEFAULT_MIN_INPUT;
   static int max_input = DEFAULT_MAX_INPUT;
+  static State state = CLOSED;
+  static Mode mode = DEFAULT_MODE;
 
   // Calibration buttons
   if (digitalRead(MIN_BUTTON) == LOW) {
@@ -53,9 +63,6 @@ void loop() {
   // Scale to range
   output_value = scale_to_range(output_value, min_input, max_input, 0, 1);
 
-  // Apply curves
-  output_value = curve(output_value, CURVE_STEEPNESS);
-
   // Debug, plot two graphs
   Serial.print(scale_to_range(input_value, 0, 1024, 0, 1024));
   Serial.print(",");
@@ -63,10 +70,27 @@ void loop() {
   Serial.print(",");
   Serial.print(min_input);
   Serial.print(",");
-  Serial.println(max_input);
+  Serial.print(max_input);
+  Serial.print(",");
+  Serial.println(BINARY_THRESHOLD);
 
-  // Write to servo
-  servo.write(scale_to_range(output_value, 0, 1, 0, 180));
+  if (mode == VARIABLE) {
+    // Apply curve
+    output_value = curve(output_value, CURVE_STEEPNESS);
+    
+    // Write to servo
+    servo.write(scale_to_range(output_value, 0, 1, 0, 180));
+    
+  } else if (mode == BINARY) {
+    Serial.println(state);
+    if (state == CLOSED && output_value > BINARY_THRESHOLD) {
+      servo.write(180);
+      state = OPEN;
+    } else if (state == OPEN && output_value < BINARY_THRESHOLD) {
+      servo.write(0);
+      state = CLOSED;
+    }
+  }
   delay(POLL_RATE);
 }
 
