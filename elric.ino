@@ -41,7 +41,7 @@ void loop() {
   int input_value = analogRead(SENSOR_PIN);
   static int min_input = DEFAULT_MIN_INPUT;
   static int max_input = DEFAULT_MAX_INPUT;
-  static State state = CLOSED;
+  static State state = OPEN;
   static Mode mode = DEFAULT_MODE;
 
   // Calibration buttons
@@ -57,12 +57,12 @@ void loop() {
   }
 
   // Apply LPF
-  lpf.input(input_value);
+  lpf.input(input_value); 
   output_value = lpf.output();
 
   // Scale to range
   output_value = scale_to_range(output_value, min_input, max_input, 0, 1);
-
+  
   // Debug, plot two graphs
   Serial.print(scale_to_range(input_value, 0, 1024, 0, 1024));
   Serial.print(",");
@@ -76,19 +76,25 @@ void loop() {
 
   if (mode == VARIABLE) {
     // Apply curve
-    output_value = curve(output_value, CURVE_STEEPNESS);
-    
+    //output_value = curve(output_value, CURVE_STEEPNESS);
+
     // Write to servo
     servo.write(scale_to_range(output_value, 0, 1, 0, 180));
-    
+
   } else if (mode == BINARY) {
-    Serial.println(state);
-    if (state == CLOSED && output_value > BINARY_THRESHOLD) {
+    output_value = scale_to_range(output_value, 0, 1, 0, 1024);
+    if (state == OPEN && output_value > BINARY_THRESHOLD) {
+      Serial.write("CLOSING");
+      delay(1000);
       servo.write(180);
-      state = OPEN;
-    } else if (state == OPEN && output_value < BINARY_THRESHOLD) {
-      servo.write(0);
+      delay(1000);
       state = CLOSED;
+    } else if (state == CLOSED && output_value < BINARY_THRESHOLD) {
+      Serial.write("OPENING");
+      delay(1000);
+      servo.write(0);
+      delay(1000);
+      state = OPEN;
     }
   }
   delay(POLL_RATE);
