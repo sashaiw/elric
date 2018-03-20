@@ -1,5 +1,6 @@
 #include <Servo.h>
 #include <Filters.h>
+#include <stdarg.h>
 
 enum mode {VARIABLE, BINARY};
 enum state {OPEN, CLOSED};
@@ -8,22 +9,21 @@ typedef enum state State;
 
 // Tune-able parameters
 const int POLL_RATE          = 1;        // Poll rate in ms
-const int DEFAULT_MIN_INPUT  = 35;       // Minimum input value (0-1024
-const int DEFAULT_MAX_INPUT  = 150;      // Maximum input value (0-1024)
+const int DEFAULT_MIN_INPUT  = 100;       // Minimum input value (0-1024
+const int DEFAULT_MAX_INPUT  = 300;      // Maximum input value (0-1024)
 const int RANGE_DELTA        = 25;       // Delta for calibrated range
 const int CALIBRATE_LENGTH   = 50;       // Number of values to collect for calibration
 const int CALIBRATE_TIME     = 5000;     // Duration (ms) to collect calibration data
-const int CURVE_STEEPNESS    = 10;       // Steepness of output curve. DO NOT GO BELOW LIKE 4 OR SOMETHING.
+const int CURVE_STEEPNESS    = 20;       // Steepness of output curve. DO NOT GO BELOW LIKE 4 OR SOMETHING.
 const float FILTER_FREQUENCY = .1;       // Frequency in HZ of LPF
 const Mode DEFAULT_MODE      = VARIABLE; // Mode to start in
 const int BINARY_THRESHOLD   = 512;
 const int BINARY_DELTA       = 200;
 
 // Pins
-const int MOTOR_PIN = 10; // Servo
-const int SENSOR_PIN = 0; // Myoelectric sensor
-const int MIN_BUTTON = 2; // Button for calibrating minimum range
-const int MAX_BUTTON = 3; // Button for calibrating maximum range
+const int MOTOR_PIN  = 23; // Servo
+const int SENSOR_PIN = 26; // Myoelectric sensor
+const int CAL_BUTTON = 22; // Button for calibration routine
 
 Servo servo;
 FilterOnePole lpf(LOWPASS, FILTER_FREQUENCY);
@@ -57,22 +57,19 @@ void loop() {
   }
 
   // Apply LPF
-  lpf.input(input_value); 
+  lpf.input(input_value);
   output_value = lpf.output();
 
   // Scale to range
   output_value = scale_to_range(output_value, min_input, max_input, 0, 1);
-  
+
   // Debug, plot two graphs
-  Serial.print(scale_to_range(input_value, 0, 1024, 0, 1024));
-  Serial.print(",");
-  Serial.print(scale_to_range(output_value, 0, 1, 0, 1024));
-  Serial.print(",");
-  Serial.print(min_input);
-  Serial.print(",");
-  Serial.print(max_input);
-  Serial.print(",");
-  Serial.println(BINARY_THRESHOLD);
+  debug_graph(5, // Number of arguments
+              scale_to_range(input_value, 0, 1024, 0, 1024),
+              scale_to_range(output_value, 0, 1, 0, 1024),
+              min_input,
+              max_input,
+              BINARY_THRESHOLD);
 
   if (mode == VARIABLE) {
     // Apply curve
@@ -84,13 +81,11 @@ void loop() {
   } else if (mode == BINARY) {
     output_value = scale_to_range(output_value, 0, 1, 0, 1024);
     if (state == OPEN && output_value > BINARY_THRESHOLD) {
-      Serial.write("CLOSING");
       delay(1000);
       servo.write(180);
       delay(1000);
       state = CLOSED;
     } else if (state == CLOSED && output_value < BINARY_THRESHOLD) {
-      Serial.write("OPENING");
       delay(1000);
       servo.write(0);
       delay(1000);
@@ -107,6 +102,25 @@ float scale_to_range(float input_value, float old_min, float old_max, float new_
 float curve(float x, int steepness) {
   return .5 + .5 * tanh(steepness * (x - .5));
 }
+
+void debug_graph(int nArgs, ...) {
+    va_list valist;
+    va_start(valist, nArgs);
+    for (int i=0; i < nArgs - 1; i++) {
+        Serial.print(va_arg(valist, int));
+        Serial.print(",");
+    }
+    Serial.println(va_arg(valist, int));
+    va_end(valist);
+}
+
+// TODO: Test
+//float curve(float x, int k) {
+//  w2 = 1 - x;
+//  f1 = x;
+//  f2 = 0.5 + 0.5 * tanh(s * (x-.5));
+//  f = w1 * f1 + w2 * f2;
+//}
 
 float clamp(float x, float min_value, float max_value) {
   if (x < min_value) {
