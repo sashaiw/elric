@@ -2,20 +2,15 @@
 #include <Filters.h>
 #include <stdarg.h>
 
-enum state {OPEN, CLOSED};
-typedef enum state State;
-
 // Tune-able parameters
 const int POLL_RATE          = 1;        // Poll rate in ms
-const int DEFAULT_MIN_INPUT  = 100;       // Minimum input value (0-1024
+const int DEFAULT_MIN_INPUT  = 100;      // Minimum input value (0-1024
 const int DEFAULT_MAX_INPUT  = 200;      // Maximum input value (0-1024)
 const int RANGE_DELTA        = 25;       // Delta for calibrated range
 const int CALIBRATE_LENGTH   = 50;       // Number of values to collect for calibration
 const int CALIBRATE_TIME     = 5000;     // Duration (ms) to collect calibration data
 const int CURVE_STEEPNESS    = 20;       // Steepness of output curve. DO NOT GO BELOW LIKE 4 OR SOMETHING.
-const float FILTER_FREQUENCY = 1;       // Frequency in HZ of LPF
-const int BINARY_THRESHOLD   = 512;
-const int BINARY_DELTA       = 200;
+const float FILTER_FREQUENCY = 1;        // Frequency in HZ of LPF
 
 // Pins
 const int MOTOR_PIN  = 23; // Servo
