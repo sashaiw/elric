@@ -2,8 +2,6 @@
 #include <Filters.h>
 #include <stdarg.h>
 
-// hello i am sasha
-
 // Tune-able parameters
 const int POLL_RATE          = 1;        // Poll rate in ms
 const int DEFAULT_MIN_INPUT  = 100;      // Minimum input value (0-1024
