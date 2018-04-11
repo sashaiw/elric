@@ -1,4 +1,5 @@
 #include <Servo.h>
+#include <EEPROM.h>
 #include <Filters.h>
 #include <stdarg.h>
 
@@ -36,12 +37,10 @@ void loop() {
   int input_value = analogRead(SENSOR_PIN);
   static int min_input = EEPROM_read_int(MIN_VAL_ADDR);
   static int max_input = EEPROM_read_int(MAX_VAL_ADDR);
-  static State state = OPEN;
-  static Mode mode = DEFAULT_MODE;
 
   // Calibration buttons
-  if (digitalRead(MIN_BUTTON) == LOW) {
-    calibration_sequence(&min_input, &max_input);
+  if (digitalRead(CALIB_BTN) == LOW) {
+    calibration_sequence(CALIB_BTN, &min_input, &max_input);
   }
 
   // Apply LPF
@@ -52,12 +51,12 @@ void loop() {
   output_value = scale_to_range(output_value, min_input, max_input, 0, 1);
 
   // Debug, plot two graphs
-  debug_graph(5, // Number of arguments
+  debug_graph(4, // Number of arguments
               scale_to_range(input_value, 0, 1024, 0, 1024),
               scale_to_range(output_value, 0, 1, 0, 1024),
               min_input,
-              max_input,
-              BINARY_THRESHOLD);
+              max_input
+              );
 
   // Apply curve
   //output_value = curve(output_value, CURVE_STEEPNESS);
@@ -79,10 +78,10 @@ void debug_graph(int nArgs, ...) {
     va_list valist;
     va_start(valist, nArgs);
     for (int i=0; i < nArgs - 1; i++) {
-        Serial.print(va_arg(valist, i));
+        Serial.print(va_arg(valist, int));
         Serial.print(",");
     }
-    Serial.println(va_arg(valist, int));
+    //Serial.println(va_arg(valist, int));
     va_end(valist);
 }
 
@@ -113,7 +112,7 @@ void twitch() {
 
 void EEPROM_write_int(int ee, int value) {
   const byte* p = (const byte*)(const void*)&value;
-  for (int i = 0; i < sizeof(value); i++) {
+  for (unsigned int i = 0; i < sizeof(value); i++) {
     EEPROM.write(ee++, *p++);
   }
 }
@@ -121,20 +120,20 @@ void EEPROM_write_int(int ee, int value) {
 int EEPROM_read_int(int ee) {
   int value;
   byte* p = (byte*)(void*)&value;
-  for (int i = 0; i < sizeof(value); i++) {
+  for (unsigned int i = 0; i < sizeof(value); i++) {
     *p++ = EEPROM.read(ee++);
   }
   return value;
 }
 
-void calibration_sequence(&min_value, &max_value) {
-  while (calib_btn == LOW) {} // Wait for button press
-  min_value = calibrate_values() + RANGE_DELTA;
-  EEPROM_write_int(MIN_VAL_ADDR, min_value);
+void calibration_sequence(int calib_btn, int* min_value, int* max_value) {
+  while (analogRead(calib_btn) == LOW) {} // Wait for button press
+  *min_value = calibrate_values() + RANGE_DELTA;
+  EEPROM_write_int(MIN_VAL_ADDR, *min_value);
   twitch();                   // Signal that calibration is complete.
-  while (calib_btn == LOW) {} // Wait for button press
-  max_value = calibrate_values() - RANGE_DELTA;
-  EEPROM_write_int(MAX_VAL_ADDR, max_val);
+  while (analogRead(calib_btn) == LOW) {} // Wait for button press
+  *max_value = calibrate_values() - RANGE_DELTA;
+  EEPROM_write_int(MAX_VAL_ADDR, *max_value);
 }
 
 int calibrate_values() {
